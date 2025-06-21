@@ -6,8 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "tailwind:init": "./node_modules/.bin/tailwindcss init -p"
+    "lint": "next lint"
   },
   "dependencies": {
     "@mui/material": "^5.15.0",
@@ -23,7 +22,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.0.0",
-    "vis-network": "^9.1.9"
+    "vis-network": "^9.1.9",
+    "@mui/material-nextjs": "^5.15.0",
+    "@emotion/cache": "^11.11.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
