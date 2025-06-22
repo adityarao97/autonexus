@@ -387,11 +387,9 @@ export default function HomePage() {
                   label="Priority"
                   onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value }))}
                 >
-                  <MenuItem value="cost">Cost Optimization</MenuItem>
+                  <MenuItem value="profitability">Profitability</MenuItem>
                   <MenuItem value="stability">Supply Stability</MenuItem>
-                  <MenuItem value="eco_friendly">Eco-Friendly</MenuItem>
-                  <MenuItem value="quality">Quality Focus</MenuItem>
-                  <MenuItem value="speed">Delivery Speed</MenuItem>
+                  <MenuItem value="eco-friendly">Eco-Friendly</MenuItem>
                 </Select>
               </FormControl>
             </Box>
