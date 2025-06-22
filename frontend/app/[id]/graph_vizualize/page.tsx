@@ -130,8 +130,8 @@ export default function GraphVisualizePage({ params }: PageProps) {
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     {loading
-                      ? "Loading chocolate manufacturing supply chain data..."
-                      : "Chocolate manufacturing raw material sourcing and supplier scoring visualization"}
+                      ? "Loading supply chain data..."
+                      : "Raw material sourcing and supplier scoring visualization"}
                   </Typography>
                 </Box>
                 <Box sx={{ position: "relative" }}>
