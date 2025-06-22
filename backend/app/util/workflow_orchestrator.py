@@ -175,60 +175,227 @@ class RawMaterialSourcingWorkflow:
         }
     
     async def _identify_raw_materials(self, industry_context: str, destination_country: str) -> List[str]:
-        """Identify key raw materials using LLM with STRICT output constraints"""
+        """Identify key raw materials for analysis using PURE LLM analysis - NO FALLBACKS"""
         logger.info(f"🔍 Using LLM to identify raw materials for: {industry_context}")
-
+        
         # Create a Claude tool instance for this specific task
         from tools.claude_tool import ClaudeTool
         claude_tool = ClaudeTool()
-
-        claude_prompt = (
-        f'For the industry "{industry_context}", return ONLY a valid JSON object listing exactly 3 raw materials used as inputs, '
-        f'with NO explanation, NO markdown, NO extra text. '
-        f'Format: {{"raw_materials": ["Material 1", "Material 2", "Material 3"]}}'
-)
-
+        
+        claude_prompt = f"""
+        You are a global supply chain expert specializing in raw material sourcing and international trade.
+        
+        TASK: Analyze the industry/product "{industry_context}" and identify the 3 most critical RAW MATERIALS that companies need to source/import to {destination_country}.
+        
+        CRITICAL INSTRUCTIONS:
+        1. You MUST provide ACTUAL MATERIAL NAMES, not placeholders like "Material1" or "material2"
+        2. If the input mentions multiple products (e.g., "coffee and sugar"), focus on raw materials for BOTH
+        3. For compound terms (e.g., "cotton t-shirts"), think about ALL raw materials needed
+        4. NEVER use generic names - always use specific, real material names
+        
+        INDUSTRY/PRODUCT CONTEXT: {industry_context}
+        DESTINATION: {destination_country}
+        
+        ANALYSIS APPROACH:
+        - Break down "{industry_context}" into its components
+        - Think: What raw materials go INTO making this product/these products?
+        - Consider materials typically imported to {destination_country}
+        - Focus on PRIMARY inputs, not machinery or finished goods
+        
+        EXAMPLES OF CORRECT RESPONSES:
+        - "cotton t-shirts" → Cotton Fiber, Polyester Fiber, Textile Dyes
+        - "chocolate bars" → Cocoa Beans, Cane Sugar, Milk Powder
+        - "coffee and sugar" → Coffee Beans, Sugar Cane, Paper (for packaging)
+        - "smartphones" → Lithium, Rare Earth Elements, Copper
+        - "furniture" → Timber, Steel, Polyurethane Foam
+        - "cosmetics" → Essential Oils, Titanium Dioxide, Glycerin
+        - "bread bakery" → Wheat Flour, Yeast, Salt
+        - "leather shoes" → Leather Hides, Rubber, Adhesives
+        
+        FORBIDDEN RESPONSES (DO NOT USE):
+        ❌ Material1, Material2, Material3
+        ❌ Raw Material 1, Raw Material 2
+        ❌ Component A, Component B
+        ❌ Ingredient 1, Ingredient 2
+        
+        REQUIRED JSON FORMAT:
+        {{
+            "industry_analysis": "Brief analysis of {industry_context} and its raw material needs",
+            "raw_materials": [
+                {{
+                    "name": "ACTUAL SPECIFIC MATERIAL NAME (e.g., 'Cotton Fiber', 'Cocoa Beans', 'Lithium')",
+                    "reasoning": "Why this specific material is critical",
+                    "import_necessity": "Why this needs to be imported to {destination_country}"
+                }},
+                {{
+                    "name": "ACTUAL SPECIFIC MATERIAL NAME",
+                    "reasoning": "Why this specific material is critical",
+                    "import_necessity": "Why this needs to be imported"
+                }},
+                {{
+                    "name": "ACTUAL SPECIFIC MATERIAL NAME",
+                    "reasoning": "Why this specific material is critical",
+                    "import_necessity": "Why this needs to be imported"
+                }}
+            ]
+        }}
+        
+        REMEMBER: Each "name" field MUST contain a real, specific material name. NO PLACEHOLDERS!
+        """
+        
         try:
-            logger.info("🤖 Making LLM call with strict constraints...")
-            logger.info(f"Prompt sent to Claude:\n{claude_prompt}")
-
-            # Make the LLM call with very specific instructions
+            logger.info("🤖 Making LLM call for material identification...")
+            
+            # Make the LLM call with strict JSON formatting
             response = await claude_tool.execute({
                 "prompt": claude_prompt,
-                "max_tokens": 200,  # Severely limit tokens to force concise response
-                "temperature": 0.0,  # Zero temperature for maximum consistency
+                "max_tokens": 2000,
+                "temperature": 0.1,  # Very low temperature for consistent, focused results
                 "response_format": "json"
             })
-
+            
             # Extract text from response
             response_text = self._extract_text_from_result(response)
-            logger.info(f"📄 Raw LLM response: {response_text!r}")  # Print with repr to show whitespace/formatting
-
-            # Clean and parse the response
-            materials = self._parse_simple_json_response(response_text, industry_context)
-
+            logger.info(f"📄 LLM Response length: {len(response_text)} characters")
+            logger.debug(f"Raw LLM response: {response_text[:1000]}...")
+            
+            # Parse the response - STRICT JSON ONLY
+            materials = self._parse_strict_json_response(response_text, industry_context)
+            
+            # Validate that we got real material names, not placeholders
+            materials = self._validate_real_materials(materials, industry_context)
+            
             if not materials:
-                logger.error("❌ LLM failed to return valid materials")
-                logger.error(f"Expected format: {{'raw_materials': ['Material 1', 'Material 2', 'Material 3']}}")
-                logger.error(f"Actual response: {response_text!r}")
-                raise WorkflowExecutionError(f"LLM could not identify raw materials for '{industry_context}'. Please try with a more specific industry description.")
-
-            # Validate we have exactly 3 materials
-            if len(materials) != 3:
-                logger.warning(f"Expected 3 materials, got {len(materials)}. Adjusting...")
-                if len(materials) > 3:
-                    materials = materials[:3]
-                elif len(materials) < 3:
-                    # Add fallback materials if needed
-                    materials.extend(self._get_emergency_materials(industry_context, 3 - len(materials)))
-
-            logger.info(f"✅ LLM identified materials: {materials}")
+                logger.error("❌ LLM failed to identify valid materials or returned placeholders")
+                raise WorkflowExecutionError(f"LLM could not identify real raw materials for '{industry_context}'. Please try with a more specific industry/product description.")
+            
+            logger.info(f"✅ LLM successfully identified {len(materials)} materials: {materials}")
             return materials
-
+            
         except Exception as e:
             logger.error(f"❌ LLM-based material identification failed: {e}")
             error_msg = f"Failed to identify raw materials for '{industry_context}'. LLM analysis error: {str(e)}"
             raise WorkflowExecutionError(error_msg)
+
+    def _validate_real_materials(self, materials: List[str], industry_context: str) -> List[str]:
+        """Validate that materials are real names, not placeholders"""
+        if not materials:
+            return []
+        
+        valid_materials = []
+        
+        for material in materials:
+            material_lower = material.lower()
+            
+            # Check for placeholder patterns
+            placeholder_patterns = [
+                'material1', 'material2', 'material3',
+                'material 1', 'material 2', 'material 3',
+                'raw material', 'component', 'ingredient',
+                'item1', 'item2', 'item3',
+                'placeholder', 'example'
+            ]
+            
+            is_placeholder = any(pattern in material_lower for pattern in placeholder_patterns)
+            
+            # Check if it's just a number or too generic
+            if material_lower.strip().isdigit() or len(material.strip()) < 3:
+                is_placeholder = True
+            
+            if not is_placeholder:
+                valid_materials.append(material)
+                logger.info(f"✅ Valid material: {material}")
+            else:
+                logger.warning(f"❌ Rejected placeholder material: {material}")
+        
+        return valid_materials
+
+    def _parse_strict_json_response(self, response_text: str, industry_context: str) -> List[str]:
+        """Parse LLM response with strict JSON requirements - NO FALLBACKS"""
+        try:
+            # Clean the response text
+            response_text = response_text.strip()
+            
+            # Find JSON content
+            import re
+            
+            # Look for JSON object - more flexible pattern
+            json_pattern = r'\{[^{}]*"raw_materials"[^{}]*\[[^\]]*\][^{}]*\}'
+            json_matches = re.findall(json_pattern, response_text, re.DOTALL)
+            
+            if not json_matches:
+                # Try simpler pattern
+                json_pattern = r'\{.*?\}'
+                json_matches = re.findall(json_pattern, response_text, re.DOTALL)
+            
+            if not json_matches:
+                logger.error("No JSON found in LLM response")
+                logger.debug(f"Response was: {response_text}")
+                return []
+            
+            # Try each JSON match
+            for json_text in json_matches:
+                try:
+                    # Clean up the JSON
+                    json_text = json_text.strip()
+                    
+                    # Parse JSON
+                    data = json.loads(json_text)
+                    logger.debug(f"Parsed JSON: {data}")
+                    
+                    # Validate structure
+                    if not isinstance(data, dict):
+                        logger.warning(f"JSON is not a dictionary: {type(data)}")
+                        continue
+                    
+                    if "raw_materials" not in data:
+                        logger.warning("No 'raw_materials' key in JSON")
+                        continue
+                    
+                    raw_materials_list = data["raw_materials"]
+                    if not isinstance(raw_materials_list, list):
+                        logger.warning(f"'raw_materials' is not a list: {type(raw_materials_list)}")
+                        continue
+                    
+                    # Log industry analysis if present
+                    if "industry_analysis" in data:
+                        logger.info(f"Industry Analysis: {data['industry_analysis']}")
+                    
+                    # Extract material names
+                    materials = []
+                    for i, item in enumerate(raw_materials_list):
+                        if isinstance(item, dict) and "name" in item:
+                            material_name = item["name"].strip()
+                            if material_name:
+                                materials.append(material_name)
+                                logger.info(f"  📦 Material {i+1}: {material_name}")
+                                if "reasoning" in item:
+                                    logger.debug(f"     Reasoning: {item['reasoning']}")
+                        elif isinstance(item, str):
+                            material_name = item.strip()
+                            if material_name:
+                                materials.append(material_name)
+                                logger.info(f"  📦 Material {i+1}: {material_name}")
+                    
+                    if materials:
+                        logger.info(f"✅ Successfully extracted {len(materials)} materials from JSON")
+                        return materials[:3]  # Ensure max 3
+                    else:
+                        logger.warning("No valid materials found in raw_materials list")
+                        
+                except json.JSONDecodeError as e:
+                    logger.warning(f"JSON parsing failed for: {json_text[:200]}... Error: {e}")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Error processing JSON: {e}")
+                    continue
+            
+            logger.error("All JSON parsing attempts failed")
+            return []
+            
+        except Exception as e:
+            logger.error(f"Critical error in JSON parsing: {e}")
+            return []
 
     def _parse_simple_json_response(self, response_text: str, industry_context: str) -> List[str]:
         """Parse LLM response with simple, strict JSON parsing"""
