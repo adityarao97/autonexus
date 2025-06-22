@@ -1,3 +1,17 @@
 fastapi
 uvicorn
 pydantic
+# Core dependencies - no MCP required
+aiohttp>=3.8.0
+asyncio
+json
+typing-extensions>=4.0.0
+python-dateutil>=2.8.0
+
+# Optional dependencies (install only if needed)
+# aiomysql>=0.1.1  # Uncomment for real MySQL
+# anthropic>=0.3.0  # Uncomment for real Claude API
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
