@@ -177,101 +177,42 @@ class RawMaterialSourcingWorkflow:
     async def _identify_raw_materials(self, industry_context: str, destination_country: str) -> List[str]:
         """Identify key raw materials for analysis using PURE LLM analysis - NO FALLBACKS"""
         logger.info(f"🔍 Using LLM to identify raw materials for: {industry_context}")
-        
-        # Create a Claude tool instance for this specific task
+
         from tools.claude_tool import ClaudeTool
         claude_tool = ClaudeTool()
-        
-        claude_prompt = f"""
-        You are a global supply chain expert specializing in raw material sourcing and international trade.
-        
-        TASK: Analyze the industry/product "{industry_context}" and identify the 3 most critical RAW MATERIALS that companies need to source/import to {destination_country}.
-        
-        CRITICAL INSTRUCTIONS:
-        1. You MUST provide ACTUAL MATERIAL NAMES, not placeholders like "Material1" or "material2"
-        2. If the input mentions multiple products (e.g., "coffee and sugar"), focus on raw materials for BOTH
-        3. For compound terms (e.g., "cotton t-shirts"), think about ALL raw materials needed
-        4. NEVER use generic names - always use specific, real material names
-        
-        INDUSTRY/PRODUCT CONTEXT: {industry_context}
-        DESTINATION: {destination_country}
-        
-        ANALYSIS APPROACH:
-        - Break down "{industry_context}" into its components
-        - Think: What raw materials go INTO making this product/these products?
-        - Consider materials typically imported to {destination_country}
-        - Focus on PRIMARY inputs, not machinery or finished goods
-        
-        EXAMPLES OF CORRECT RESPONSES:
-        - "cotton t-shirts" → Cotton Fiber, Polyester Fiber, Textile Dyes
-        - "chocolate bars" → Cocoa Beans, Cane Sugar, Milk Powder
-        - "coffee and sugar" → Coffee Beans, Sugar Cane, Paper (for packaging)
-        - "smartphones" → Lithium, Rare Earth Elements, Copper
-        - "furniture" → Timber, Steel, Polyurethane Foam
-        - "cosmetics" → Essential Oils, Titanium Dioxide, Glycerin
-        - "bread bakery" → Wheat Flour, Yeast, Salt
-        - "leather shoes" → Leather Hides, Rubber, Adhesives
-        
-        FORBIDDEN RESPONSES (DO NOT USE):
-        ❌ Material1, Material2, Material3
-        ❌ Raw Material 1, Raw Material 2
-        ❌ Component A, Component B
-        ❌ Ingredient 1, Ingredient 2
-        
-        REQUIRED JSON FORMAT:
-        {{
-            "industry_analysis": "Brief analysis of {industry_context} and its raw material needs",
-            "raw_materials": [
-                {{
-                    "name": "ACTUAL SPECIFIC MATERIAL NAME (e.g., 'Cotton Fiber', 'Cocoa Beans', 'Lithium')",
-                    "reasoning": "Why this specific material is critical",
-                    "import_necessity": "Why this needs to be imported to {destination_country}"
-                }},
-                {{
-                    "name": "ACTUAL SPECIFIC MATERIAL NAME",
-                    "reasoning": "Why this specific material is critical",
-                    "import_necessity": "Why this needs to be imported"
-                }},
-                {{
-                    "name": "ACTUAL SPECIFIC MATERIAL NAME",
-                    "reasoning": "Why this specific material is critical",
-                    "import_necessity": "Why this needs to be imported"
-                }}
-            ]
-        }}
-        
-        REMEMBER: Each "name" field MUST contain a real, specific material name. NO PLACEHOLDERS!
-        """
-        
+
+        claude_prompt = (
+            f'List exactly 3 specific raw materials that are actually used to manufacture "{industry_context}". '
+            f'Respond ONLY with a valid JSON object in this format: '
+            f'{{"raw_materials": ["<material1>", "<material2>", "<material3>"]}}'
+        )
+
         try:
             logger.info("🤖 Making LLM call for material identification...")
-            
-            # Make the LLM call with strict JSON formatting
+
             response = await claude_tool.execute({
                 "prompt": claude_prompt,
-                "max_tokens": 2000,
-                "temperature": 0.1,  # Very low temperature for consistent, focused results
+                "max_tokens": 200,
+                "temperature": 0.1,
                 "response_format": "json"
             })
-            
-            # Extract text from response
+
             response_text = self._extract_text_from_result(response)
             logger.info(f"📄 LLM Response length: {len(response_text)} characters")
             logger.debug(f"Raw LLM response: {response_text[:1000]}...")
-            
-            # Parse the response - STRICT JSON ONLY
-            materials = self._parse_strict_json_response(response_text, industry_context)
-            
-            # Validate that we got real material names, not placeholders
+
+            materials = self._parse_simple_json_response(response_text, industry_context)
             materials = self._validate_real_materials(materials, industry_context)
-            
+
             if not materials:
                 logger.error("❌ LLM failed to identify valid materials or returned placeholders")
-                raise WorkflowExecutionError(f"LLM could not identify real raw materials for '{industry_context}'. Please try with a more specific industry/product description.")
-            
+                raise WorkflowExecutionError(
+                    f"LLM could not identify real raw materials for '{industry_context}'. Please try with a more specific industry/product description."
+                )
+
             logger.info(f"✅ LLM successfully identified {len(materials)} materials: {materials}")
             return materials
-            
+
         except Exception as e:
             logger.error(f"❌ LLM-based material identification failed: {e}")
             error_msg = f"Failed to identify raw materials for '{industry_context}'. LLM analysis error: {str(e)}"

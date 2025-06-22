@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Any, Dict, List
 from datetime import datetime
+import anthropic
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -13,11 +14,12 @@ class ClaudeTool:
     Claude LLM tool for advanced AI analysis and insights.
     """
     
-    def __init__(self, api_key: str = "dummy_claude_api_key", model: str = "claude-3-sonnet-20240229"):
+    def __init__(self, api_key: str = "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", model: str = "claude-3-haiku-20240307"):
         self.name = "claude_llm"
         self.description = "Interact with Claude LLM for advanced analysis, reasoning, and insights"
         self.api_key = api_key
         self.model = model
+        self.client = anthropic.Anthropic(api_key=api_key)
         self.request_count = 0
         self.total_tokens_used = 0
         self.cache = {}
@@ -55,9 +57,18 @@ class ClaudeTool:
             else:
                 enhanced_prompt = prompt
             
-            # Generate mock response (replace with real API call in production)
-            await asyncio.sleep(0.5)  # Simulate API processing time
-            content = self._generate_contextual_response(enhanced_prompt, system_prompt)
+            # Generate response using Anthropic API
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.messages.create(
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    messages=[{"role": "user", "content": enhanced_prompt}]
+                )
+            )
+            content = response.content[0].text if hasattr(response.content[0], "text") else response.content[0]
             
             # Update tracking
             self.request_count += 1
