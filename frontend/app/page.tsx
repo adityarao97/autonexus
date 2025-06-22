@@ -315,7 +315,7 @@ export default function HomePage() {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
-                              {formatDate(proposal.created_at)}
+                              {formatDate(proposal.created)}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
