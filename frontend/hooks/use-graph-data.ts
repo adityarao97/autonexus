@@ -16,7 +16,7 @@ interface UseGraphDataReturn {
   refetch: () => Promise<void>
 }
 
-export function useGraphData(): UseGraphDataReturn {
+export function useGraphData(id: string): UseGraphDataReturn {
   const [data, setData] = useState<GraphData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,8 +28,8 @@ export function useGraphData(): UseGraphDataReturn {
 
       // Fetch both nodes and relationships from API
       const [nodesResponse, relationshipsResponse] = await Promise.all([
-        fetch("/api/neo4j/nodes"),
-        fetch("/api/neo4j/relationships"),
+        fetch(`/api/neo4j/nodes/${id}`),
+        fetch(`/api/neo4j/relationships/${id}`),
       ])
 
       if (!nodesResponse.ok) {

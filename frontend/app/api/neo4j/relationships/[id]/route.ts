@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export async function GET() {
+
+export async function GET(
+  request: NextRequest, context: { params: Promise<{ id: string }> }
+) {
   try {
+
+    const { id } = await context.params
     // Fetch relationships from FastAPI backend
-    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/relationships/6857be741c79113571b0cbc2`, {
+    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/relationships/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
