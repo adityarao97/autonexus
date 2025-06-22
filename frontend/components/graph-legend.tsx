@@ -4,28 +4,34 @@ import { Card, CardContent, Typography, Box, Chip, Paper } from "@mui/material"
 export function GraphLegend() {
   const legendItems = [
     {
-      label: ":Person",
+      label: ":UseCase",
       color: "#1976d2",
-      shape: "circle",
-      description: "Individual",
+      shape: "star",
+      description: "Manufacturing",
     },
     {
-      label: ":Company",
+      label: ":RawMaterial",
       color: "#2e7d32",
       shape: "square",
-      description: "Organization",
+      description: "Ingredients",
     },
     {
-      label: ":Technology",
-      color: "#9c27b0",
-      shape: "diamond",
-      description: "Tool",
+      label: ":Country (High Score)",
+      color: "#4caf50",
+      shape: "circle",
+      description: "Score ≥ 7.5",
     },
     {
-      label: ":Skill",
-      color: "#ed6c02",
-      shape: "triangle",
-      description: "Capability",
+      label: ":Country (Medium Score)",
+      color: "#ff9800",
+      shape: "circle",
+      description: "Score 7.0-7.5",
+    },
+    {
+      label: ":Country (Low Score)",
+      color: "#f44336",
+      shape: "circle",
+      description: "Score < 7.0",
     },
   ]
 
@@ -41,9 +47,7 @@ export function GraphLegend() {
         return { ...baseStyle, borderRadius: "50%" }
       case "square":
         return { ...baseStyle, borderRadius: 2 }
-      case "diamond":
-        return { ...baseStyle, transform: "rotate(45deg)", borderRadius: 2 }
-      case "triangle":
+      case "star":
         return {
           width: 0,
           height: 0,
@@ -51,6 +55,7 @@ export function GraphLegend() {
           borderRight: "10px solid transparent",
           borderBottom: `15px solid ${color}`,
           backgroundColor: "transparent",
+          position: "relative" as const,
         }
       default:
         return baseStyle
@@ -61,10 +66,10 @@ export function GraphLegend() {
     <Card>
       <CardContent>
         <Typography variant="h6" component="h3" sx={{ mb: 1 }}>
-          Graph Legend
+          Supply Chain Legend
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Node types and their visual representations
+          Node types and scoring system
         </Typography>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -89,12 +94,28 @@ export function GraphLegend() {
                   flexShrink: 0,
                 }}
               />
-              <Typography variant="body2" sx={{ fontWeight: 600, flexGrow: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, flexGrow: 1, fontSize: "0.8rem" }}>
                 {item.label}
               </Typography>
               <Chip label={item.description} size="small" variant="outlined" />
             </Paper>
           ))}
+        </Box>
+
+        <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+            Relationship Types:
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ width: 20, height: 3, bgcolor: "#1976d2" }} />
+              <Typography variant="body2">REQUIRES</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ width: 20, height: 3, bgcolor: "#2e7d32" }} />
+              <Typography variant="body2">SUPPLIES</Typography>
+            </Box>
+          </Box>
         </Box>
       </CardContent>
     </Card>

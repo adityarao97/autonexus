@@ -4,220 +4,100 @@ import { useEffect, useRef, useState } from "react"
 import { Network } from "vis-network/standalone/esm/vis-network"
 import type { Data, Options, Node, Edge } from "vis-network/standalone/esm/vis-network"
 import type { Neo4jNode, Neo4jRelationship } from "@/types/neo4j"
-import { Box, CircularProgress } from "@mui/material"
+import { Box, CircularProgress, Alert, Button } from "@mui/material"
+import { Refresh } from "@mui/icons-material"
 
 interface GraphVisualizationProps {
+  nodes: Neo4jNode[]
+  relationships: Neo4jRelationship[]
+  loading?: boolean
+  error?: string | null
   onNodeSelect?: (node: any) => void
+  onRefresh?: () => void
 }
 
-export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
+export function GraphVisualization({
+  nodes,
+  relationships,
+  loading = false,
+  error = null,
+  onNodeSelect,
+  onRefresh,
+}: GraphVisualizationProps) {
   const networkRef = useRef<HTMLDivElement>(null)
   const networkInstance = useRef<Network | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitializing, setIsInitializing] = useState(false)
 
   useEffect(() => {
-    if (!networkRef.current) return
+    if (!networkRef.current || loading || error || !nodes.length || !relationships.length) return
 
     const initializeGraph = () => {
       try {
-        // Neo4j-style sample data
-        const neo4jNodes: Neo4jNode[] = [
-          {
-            id: "1",
-            labels: ["Person"],
-            properties: {
-              name: "Alice Johnson",
-              role: "Software Engineer",
-              experience: "5 years",
-              location: "San Francisco",
-            },
-          },
-          {
-            id: "2",
-            labels: ["Person"],
-            properties: {
-              name: "Bob Smith",
-              role: "Data Scientist",
-              experience: "7 years",
-              location: "New York",
-            },
-          },
-          {
-            id: "3",
-            labels: ["Company"],
-            properties: {
-              name: "TechCorp",
-              industry: "Technology",
-              founded: "2010",
-              employees: "500+",
-            },
-          },
-          {
-            id: "4",
-            labels: ["Company"],
-            properties: {
-              name: "DataFlow Inc",
-              industry: "Data Analytics",
-              founded: "2015",
-              employees: "200+",
-            },
-          },
-          {
-            id: "5",
-            labels: ["Technology"],
-            properties: {
-              name: "React",
-              type: "JavaScript Library",
-              category: "Frontend",
-              version: "18.x",
-            },
-          },
-          {
-            id: "6",
-            labels: ["Technology"],
-            properties: {
-              name: "Python",
-              type: "Programming Language",
-              category: "Backend",
-              version: "3.11",
-            },
-          },
-          {
-            id: "7",
-            labels: ["Technology"],
-            properties: {
-              name: "Neo4j",
-              type: "Graph Database",
-              category: "Database",
-              version: "5.x",
-            },
-          },
-          {
-            id: "8",
-            labels: ["Skill"],
-            properties: {
-              name: "Machine Learning",
-              level: "Expert",
-              category: "Data Science",
-            },
-          },
-        ]
+        setIsInitializing(true)
 
-        const neo4jRelationships: Neo4jRelationship[] = [
-          {
-            id: "r1",
-            startNodeId: "1",
-            endNodeId: "3",
-            type: "WORKS_AT",
-            properties: {
-              since: "2020",
-              position: "Senior Engineer",
-            },
-          },
-          {
-            id: "r2",
-            startNodeId: "2",
-            endNodeId: "4",
-            type: "WORKS_AT",
-            properties: {
-              since: "2019",
-              position: "Lead Data Scientist",
-            },
-          },
-          {
-            id: "r3",
-            startNodeId: "1",
-            endNodeId: "5",
-            type: "USES",
-            properties: {
-              proficiency: "Expert",
-              years: "4",
-            },
-          },
-          {
-            id: "r4",
-            startNodeId: "2",
-            endNodeId: "6",
-            type: "USES",
-            properties: {
-              proficiency: "Expert",
-              years: "6",
-            },
-          },
-          {
-            id: "r5",
-            startNodeId: "2",
-            endNodeId: "7",
-            type: "USES",
-            properties: {
-              proficiency: "Advanced",
-              years: "3",
-            },
-          },
-          {
-            id: "r6",
-            startNodeId: "1",
-            endNodeId: "8",
-            type: "HAS_SKILL",
-            properties: {
-              level: "Senior",
-            },
-          },
-          {
-            id: "r7",
-            startNodeId: "1",
-            endNodeId: "2",
-            type: "COLLABORATES_WITH",
-            properties: {
-              project: "Data Visualization Platform",
-            },
-          },
-        ]
-
-        // Convert Neo4j data to vis-network format
-        const getNodeColor = (labels: string[]) => {
-          if (labels.includes("Person")) return { background: "#1976d2", border: "#1565c0" }
-          if (labels.includes("Company")) return { background: "#2e7d32", border: "#1b5e20" }
-          if (labels.includes("Technology")) return { background: "#9c27b0", border: "#7b1fa2" }
-          if (labels.includes("Skill")) return { background: "#ed6c02", border: "#e65100" }
+        // Convert Neo4j data to vis-network format with supply chain specific styling
+        const getNodeColor = (labels: string[], properties: any) => {
+          if (labels.includes("UseCase")) return { background: "#1976d2", border: "#1565c0" }
+          if (labels.includes("RawMaterial")) return { background: "#2e7d32", border: "#1b5e20" }
+          if (labels.includes("Country")) {
+            // Color countries based on composite score
+            const score = properties.composite_score || 0
+            if (score >= 7.5) return { background: "#4caf50", border: "#388e3c" } // High score - green
+            if (score >= 7.0) return { background: "#ff9800", border: "#f57c00" } // Medium score - orange
+            return { background: "#f44336", border: "#d32f2f" } // Low score - red
+          }
           return { background: "#757575", border: "#424242" }
         }
 
         const getNodeShape = (labels: string[]) => {
-          if (labels.includes("Person")) return "dot"
-          if (labels.includes("Company")) return "box"
-          if (labels.includes("Technology")) return "diamond"
-          if (labels.includes("Skill")) return "triangle"
+          if (labels.includes("UseCase")) return "star"
+          if (labels.includes("RawMaterial")) return "box"
+          if (labels.includes("Country")) return "dot"
           return "dot"
         }
 
-        const visNodes: Node[] = neo4jNodes.map((node) => ({
+        const getNodeSize = (labels: string[], properties: any) => {
+          if (labels.includes("UseCase")) return 40
+          if (labels.includes("RawMaterial")) return 30
+          if (labels.includes("Country")) {
+            // Size countries based on composite score
+            const score = properties.composite_score || 0
+            return 20 + score * 2 // Scale from 20 to 35
+          }
+          return 25
+        }
+
+        const visNodes: Node[] = nodes.map((node) => ({
           id: node.id,
           label: node.properties.name || `Node ${node.id}`,
           title: `<b>${node.labels.join(", ")}</b><br/>${Object.entries(node.properties)
             .map(([key, value]) => `${key}: ${value}`)
             .join("<br/>")}`,
-          color: getNodeColor(node.labels),
+          color: getNodeColor(node.labels, node.properties),
           shape: getNodeShape(node.labels),
-          size: 25,
+          size: getNodeSize(node.labels, node.properties),
           font: { size: 14, color: "#333333" },
           borderWidth: 2,
           shadow: true,
         }))
 
-        const visEdges: Edge[] = neo4jRelationships.map((rel) => ({
+        const getEdgeColor = (type: string) => {
+          if (type === "REQUIRES") return { color: "#1976d2", highlight: "#1565c0" }
+          if (type === "SUPPLIES") return { color: "#2e7d32", highlight: "#1b5e20" }
+          return { color: "#848484", highlight: "#2B7CE9" }
+        }
+
+        const visEdges: Edge[] = relationships.map((rel) => ({
           id: rel.id,
           from: rel.startNodeId,
           to: rel.endNodeId,
           label: rel.type,
-          title: `<b>${rel.type}</b><br/>${Object.entries(rel.properties)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join("<br/>")}`,
-          arrows: { to: { enabled: true, scaleFactor: 1 } },
-          color: { color: "#848484", highlight: "#2B7CE9" },
+          title: `<b>${rel.type}</b>`,
+          arrows: { to: { enabled: true, scaleFactor: 1.2 } },
+          color: getEdgeColor(rel.type),
           font: { size: 12, color: "#666666" },
           smooth: { type: "continuous" },
-          width: 2,
+          width: 3,
         }))
 
         const data: Data = {
@@ -228,13 +108,13 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
         const options: Options = {
           physics: {
             enabled: true,
-            stabilization: { iterations: 100 },
+            stabilization: { iterations: 150 },
             barnesHut: {
-              gravitationalConstant: -2000,
-              centralGravity: 0.3,
-              springLength: 120,
-              springConstant: 0.04,
-              damping: 0.09,
+              gravitationalConstant: -3000,
+              centralGravity: 0.4,
+              springLength: 150,
+              springConstant: 0.05,
+              damping: 0.1,
             },
           },
           interaction: {
@@ -256,7 +136,7 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
             },
           },
           edges: {
-            width: 2,
+            width: 3,
             shadow: true,
             smooth: {
               type: "continuous",
@@ -266,6 +146,11 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
           width: "100%",
         }
 
+        // Destroy existing network if it exists
+        if (networkInstance.current) {
+          networkInstance.current.destroy()
+        }
+
         // Create network
         networkInstance.current = new Network(networkRef.current, data, options)
 
@@ -273,7 +158,7 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
         networkInstance.current.on("click", (params) => {
           if (params.nodes.length > 0) {
             const nodeId = params.nodes[0].toString()
-            const selectedNode = neo4jNodes.find((n) => n.id === nodeId)
+            const selectedNode = nodes.find((n) => n.id === nodeId)
             if (selectedNode && onNodeSelect) {
               onNodeSelect(selectedNode)
             }
@@ -293,14 +178,14 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
         })
 
         networkInstance.current.on("stabilizationIterationsDone", () => {
-          setIsLoading(false)
+          setIsInitializing(false)
         })
 
         // Store network instance for controls
         ;(window as any).networkInstance = networkInstance.current
       } catch (error) {
         console.error("Error initializing graph visualization:", error)
-        setIsLoading(false)
+        setIsInitializing(false)
       }
     }
 
@@ -319,11 +204,30 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
         }
       }
     }
-  }, [onNodeSelect])
+  }, [nodes, relationships, loading, error, onNodeSelect])
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert
+          severity="error"
+          action={
+            onRefresh && (
+              <Button color="inherit" size="small" onClick={onRefresh} startIcon={<Refresh />}>
+                Retry
+              </Button>
+            )
+          }
+        >
+          Error loading graph data: {error}
+        </Alert>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ position: "relative" }}>
-      {isLoading && (
+      {(loading || isInitializing) && (
         <Box
           sx={{
             position: "absolute",
@@ -352,7 +256,7 @@ export function GraphVisualization({ onNodeSelect }: GraphVisualizationProps) {
           borderRadius: 2,
           bgcolor: "background.paper",
           overflow: "hidden",
-          opacity: isLoading ? 0.3 : 1,
+          opacity: loading || isInitializing ? 0.3 : 1,
           transition: "opacity 0.3s ease-in-out",
         }}
       />

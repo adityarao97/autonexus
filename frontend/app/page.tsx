@@ -1,19 +1,39 @@
 "use client"
 
 import { useState } from "react"
-import { Box, Container, Typography, Grid, Card, CardContent, AppBar, Toolbar, Chip, Avatar } from "@mui/material"
-import { Storage as StorageIcon, NetworkCheck as NetworkIcon, FlashOn as FlashIcon } from "@mui/icons-material"
+import {
+  Box,
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  AppBar,
+  Toolbar,
+  Chip,
+  Avatar,
+  Alert,
+  Button,
+} from "@mui/material"
+import { Factory as FactoryIcon, NetworkCheck as NetworkIcon, FlashOn as FlashIcon, Refresh } from "@mui/icons-material"
 import { GraphVisualization } from "@/components/graph-visualization"
 import { GraphControls } from "@/components/graph-controls"
 import { GraphStats } from "@/components/graph-stats"
 import { NodeDetails } from "@/components/node-details"
 import { GraphLegend } from "@/components/graph-legend"
+import { useGraphData } from "@/hooks/use-graph-data"
 
 export default function Home() {
   const [selectedNode, setSelectedNode] = useState<any>(null)
+  const { data, loading, error, refetch } = useGraphData()
 
   const handleReset = () => {
     setSelectedNode(null)
+  }
+
+  const handleRefresh = async () => {
+    setSelectedNode(null)
+    await refetch()
   }
 
   return (
@@ -29,27 +49,50 @@ export default function Home() {
               height: 48,
             }}
           >
-            <StorageIcon />
+            <FactoryIcon />
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Neo4j Graph Visualization
+              Chocolate Manufacturing Supply Chain
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Interactive network graph with real-time exploration
+              Interactive visualization of raw material sourcing and supplier relationships
             </Typography>
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Chip icon={<NetworkIcon />} label="Live Graph" color="primary" variant="filled" />
+            <Chip
+              icon={<NetworkIcon />}
+              label={loading ? "Loading..." : "Supply Network"}
+              color="primary"
+              variant="filled"
+            />
             <Chip icon={<FlashIcon />} label="Interactive" color="secondary" variant="outlined" />
+            <Button variant="outlined" size="small" startIcon={<Refresh />} onClick={handleRefresh} disabled={loading}>
+              Refresh
+            </Button>
           </Box>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Global Error Alert */}
+        {error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 4 }}
+            action={
+              <Button color="inherit" size="small" onClick={handleRefresh} startIcon={<Refresh />}>
+                Retry
+              </Button>
+            }
+          >
+            Failed to load supply chain data: {error}
+          </Alert>
+        )}
+
         {/* Stats Row */}
         <Box sx={{ mb: 4 }}>
-          <GraphStats />
+          <GraphStats stats={data?.stats} loading={loading} />
         </Box>
 
         {/* Main Content */}
@@ -64,9 +107,9 @@ export default function Home() {
                       sx={{
                         width: 8,
                         height: 8,
-                        bgcolor: "success.main",
+                        bgcolor: loading ? "grey.400" : "success.main",
                         borderRadius: "50%",
-                        animation: "pulse 2s infinite",
+                        animation: loading ? "none" : "pulse 2s infinite",
                         "@keyframes pulse": {
                           "0%": { opacity: 1 },
                           "50%": { opacity: 0.5 },
@@ -75,15 +118,24 @@ export default function Home() {
                       }}
                     />
                     <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
-                      Knowledge Graph
+                      Supply Chain Network
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary">
-                    Interactive visualization of connected data relationships
+                    {loading
+                      ? "Loading chocolate manufacturing supply chain data..."
+                      : "Chocolate manufacturing raw material sourcing and supplier scoring visualization"}
                   </Typography>
                 </Box>
                 <Box sx={{ position: "relative" }}>
-                  <GraphVisualization onNodeSelect={setSelectedNode} />
+                  <GraphVisualization
+                    nodes={data?.nodes || []}
+                    relationships={data?.relationships || []}
+                    loading={loading}
+                    error={error}
+                    onNodeSelect={setSelectedNode}
+                    onRefresh={handleRefresh}
+                  />
                 </Box>
               </CardContent>
             </Card>
