@@ -173,7 +173,7 @@ export default function HomePage() {
             <FactoryIcon sx={{ fontSize: 48, color: "primary.main" }} />
             <Box>
               <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
-                Supply Chain Analyzer
+                Autonexus
               </Typography>
               <Typography variant="h6" color="text.secondary">
                 Business proposal processing and supply chain visualization
