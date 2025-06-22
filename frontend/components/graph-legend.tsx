@@ -109,11 +109,11 @@ export function GraphLegend() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Box sx={{ width: 20, height: 3, bgcolor: "#1976d2" }} />
-              <Typography variant="body2">REQUIRES</Typography>
+              <Typography variant="body2">RAW MATERIALS</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Box sx={{ width: 20, height: 3, bgcolor: "#2e7d32" }} />
-              <Typography variant="body2">SUPPLIES</Typography>
+              <Typography variant="body2">COUNTRY</Typography>
             </Box>
           </Box>
         </Box>

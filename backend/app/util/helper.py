@@ -72,14 +72,14 @@ def fetch_neo4j_nodes_relationships(fp):
             "id": f"r{rel_counter}",
             "startNodeId": use_case_id,
             "endNodeId": raw_id,
-            "type": "REQUIRES",
+            "type": "RAW MATERIALS",
             "properties": {}
         })
         id_counter += 1
         rel_counter += 1
 
     # ------------------------------
-    # Step 3: Country nodes & SUPPLIES relationships
+    # Step 3: Country nodes & RAW Materials relationships
     # ------------------------------
     for material, details in data["material_analyses"].items():
         raw_id = id_map.get(material)
@@ -107,7 +107,7 @@ def fetch_neo4j_nodes_relationships(fp):
                 "id": f"r{rel_counter}",
                 "startNodeId": id_map[cname],
                 "endNodeId": raw_id,
-                "type": "SUPPLIES",
+                "type": "COUNTRY",
                 "properties": {}
             })
             rel_counter += 1

@@ -82,8 +82,8 @@ export function GraphVisualization({
         }))
 
         const getEdgeColor = (type: string) => {
-          if (type === "REQUIRES") return { color: "#1976d2", highlight: "#1565c0" }
-          if (type === "SUPPLIES") return { color: "#2e7d32", highlight: "#1b5e20" }
+          if (type === "RAW MATERIALS") return { color: "#1976d2", highlight: "#1565c0" }
+          if (type === "COUNTRY") return { color: "#2e7d32", highlight: "#1b5e20" }
           return { color: "#848484", highlight: "#2B7CE9" }
         }
 
