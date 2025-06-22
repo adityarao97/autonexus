@@ -1,7 +1,7 @@
 """Configuration settings for the workflow"""
 
 # API Keys and Authentication
-CLAUDE_API_KEY = "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"  # Replace with actual key
+CLAUDE_API_KEY = "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"  # Replace with actual key
 DUCKDUCKGO_API_KEY = None  # DuckDuckGo doesn't require API key for basic usage
 
 # Database Configuration

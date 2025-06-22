@@ -14,7 +14,7 @@ class ClaudeTool:
     Claude LLM tool for advanced AI analysis and insights.
     """
     
-    def __init__(self, api_key: str = "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", model: str = "claude-3-haiku-20240307"):
+    def __init__(self, api_key: str = "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", model: str = "claude-3-haiku-20240307"):
         self.name = "claude_llm"
         self.description = "Interact with Claude LLM for advanced analysis, reasoning, and insights"
         self.api_key = api_key
