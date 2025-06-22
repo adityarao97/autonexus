@@ -41,7 +41,7 @@ def create_user(user: UserCreate, db=Depends(get_db)):
 @router.get("/proposals")
 def proposals():
     data = []
-    rec_cursor = data_collection.find({})
+    rec_cursor = data_collection.find({}, { "industry_context": 1, "destination_country": 1, "priority": 1, "status": 1, "created": 1 } )
     for rec in rec_cursor:
         rec["_id"] = str(rec["_id"])
         data.append(rec)
