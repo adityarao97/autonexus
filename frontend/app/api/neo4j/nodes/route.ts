@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 export async function GET() {
   try {
     // Fetch nodes from FastAPI backend
-    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/nodes`, {
+    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/nodes/6857be741c79113571b0cbc2`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

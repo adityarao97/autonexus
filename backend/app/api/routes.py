@@ -1,9 +1,11 @@
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.user import User, UserCreate
 from app.dependencies.db import get_db
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
+from ..db.mongodb import data_collection
 from ..util.helper import fetch_neo4j_nodes_relationships
 from ..util.workflow_orchestrator import analyze_industry_sourcing
 
@@ -39,23 +41,31 @@ def create_user(user: UserCreate, db=Depends(get_db)):
 async def analyze(request: SourcingRequest):
     config = {"priority": request.priority}
     try:
-        results = await analyze_industry_sourcing(
+        data = await analyze_industry_sourcing(
             industry_context=request.industry_context,
             destination_country=request.destination_country,
             config=config
         )
-        return results
+
+        rec = data_collection.insert_one(data)
+        data["_id"] = str(rec.inserted_id)
+
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.get("/neo4j/nodes", response_model=List[Node])
-def get_nodes():
-    filepath = "/home/rnrnattoji/hackathon/autonexus/backend/comprehensive_sourcing_analysis_chocolate_manufacturing_USA_20250621_214030.json"
-    neo4jNodes, neo4jRelationships = fetch_neo4j_nodes_relationships(filepath)
+@router.get("/neo4j/nodes/{id}", response_model=List[Node])
+def get_nodes(id: str):
+
+    rec = data_collection.find_one({"_id": ObjectId(id)})
+    neo4jNodes, neo4jRelationships = fetch_neo4j_nodes_relationships(rec)
+
     return neo4jNodes
 
-@router.get("/neo4j/relationships", response_model=List[Relationship])
-def get_relationships():
-    filepath = "/home/rnrnattoji/hackathon/autonexus/backend/comprehensive_sourcing_analysis_chocolate_manufacturing_USA_20250621_214030.json"
-    neo4jNodes, neo4jRelationships = fetch_neo4j_nodes_relationships(filepath)
+@router.get("/neo4j/relationships/{id}", response_model=List[Relationship])
+def get_relationships(id: str):
+
+    rec = data_collection.find_one({"_id": ObjectId(id)})
+    neo4jNodes, neo4jRelationships = fetch_neo4j_nodes_relationships(rec)
+    
     return neo4jRelationships

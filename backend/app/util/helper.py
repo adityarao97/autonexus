@@ -1,10 +1,10 @@
 import json
 
 
-def fetch_neo4j_nodes_relationships(fp):
+def fetch_neo4j_nodes_relationships(data):
     # Load the input JSON file
-    with open(fp) as f:
-        data = json.load(f)
+    # with open(fp) as f:
+    #     data = json.load(f)
 
     # Output containers
     neo4jNodes = []
