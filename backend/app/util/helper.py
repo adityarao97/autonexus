@@ -57,13 +57,16 @@ def fetch_neo4j_nodes_relationships(data):
         identified_countries = [c["country"] for c in countries_info]
         country_scores = [f'{c["country"]}: {c["composite_score"]}' for c in countries_info]
 
+        summary = data["final_recommendations"].get("material_recommendations", {}).get(material, {}).get("selection_rationale", {}).get("summary", "No summary available")
+        
         neo4jNodes.append({
             "id": raw_id,
             "labels": ["RawMaterial"],
             "properties": {
                 "name": material,
                 "identified_countries": ", ".join(identified_countries),
-                "country_scores": ", ".join(country_scores)
+                "country_scores": ", ".join(country_scores),
+                "summary": summary
             }
         })
         id_map[material] = raw_id
