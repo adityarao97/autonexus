@@ -1,0 +1,16 @@
+{
+  "execution_id": "b027e2ef-a7ed-4a4d-8f6e-20cd3d8932a5",
+  "status": "FAILED",
+  "error": "Comprehensive workflow failed: Failed to identify raw materials for 'shoe'. LLM analysis error: LLM could not identify real raw materials for 'shoe'. Please try with a more specific industry/product description.",
+  "execution_time": 0.522834,
+  "partial_results": {},
+  "performance_metrics": {
+    "total_api_calls": 0,
+    "total_tokens_used": 0,
+    "database_queries": 0,
+    "search_queries": 0,
+    "agent_executions": 0,
+    "successful_agents": 0,
+    "failed_agents": 0
+  }
+}
