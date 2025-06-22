@@ -18,7 +18,7 @@ export async function GET() {
         // Add any authentication headers if needed
         // 'Authorization': `Bearer ${process.env.API_TOKEN}`,
       },
-      next: { revalidate: 30 }, // Revalidate every 30 seconds
+      // next: { revalidate: 30 }, // Revalidate every 30 seconds
     })
 
     if (!response.ok) {
