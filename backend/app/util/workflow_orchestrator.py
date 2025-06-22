@@ -802,18 +802,161 @@ class RawMaterialSourcingWorkflow:
                 "performance_metrics": self.performance_metrics
             }
     
-    def _generate_comprehensive_recommendations(self, industry_context: str, 
-                                              destination_country: str) -> Dict[str, Any]:
-        """Generate comprehensive recommendations from all analyses"""
-        recommendations = {
-        "priority_focus": self.config.get("priority", "balanced"),  # NEW
-        "scoring_weights_used": self.scoring_weights,  # NEW
+def _generate_comprehensive_recommendations(self, industry_context: str, 
+                                          destination_country: str) -> Dict[str, Any]:
+    """Generate comprehensive recommendations from all analyses"""
+    recommendations = {
         "executive_summary": self._generate_executive_summary(),
         "material_recommendations": {},
         "top_opportunities": [],
         "risk_assessment": {},
         "implementation_roadmap": {}
     }
+    
+    detailed_analysis = self.results.get("detailed_analysis", {})
+    
+    # Generate recommendations for each material
+    for material, countries_analysis in detailed_analysis.items():
+        if not countries_analysis:
+            continue
+        
+        # Find best country for this material
+        best_country = None
+        best_score = 0.0
+        country_rankings = []
+        
+        for country, analysis in countries_analysis.items():
+            if analysis.get("status") == "success":
+                score = analysis.get("overall_score", 0.0)
+                country_rankings.append({
+                    "country": country,
+                    "overall_score": score,
+                    "expert_scores": analysis.get("expert_scores", {}),
+                    "status": "analyzed"
+                })
+                
+                if score > best_score:
+                    best_score = score
+                    best_country = country
+        
+        # Sort rankings by score
+        country_rankings.sort(key=lambda x: x["overall_score"], reverse=True)
+        
+        # Generate comparison summary explaining why the best country was chosen
+        selection_rationale = self._generate_selection_rationale(best_country, country_rankings, material)
+        
+        recommendations["material_recommendations"][material] = {
+            "recommended_country": best_country,
+            "recommended_score": best_score,
+            "country_rankings": country_rankings,
+            "risk_level": self._assess_material_risk(best_score),
+            "key_insights": self._generate_material_insights(material, country_rankings),
+            "selection_rationale": selection_rationale  # NEW: Add selection rationale
+        }
+    
+    # Generate top opportunities
+    all_opportunities = []
+    for material, rec in recommendations["material_recommendations"].items():
+        if rec["recommended_country"] and rec["recommended_score"] >= 7.0:
+            all_opportunities.append({
+                "material": material,
+                "country": rec["recommended_country"],
+                "score": rec["recommended_score"],
+                "opportunity_rating": "HIGH" if rec["recommended_score"] >= 8.0 else "MEDIUM"
+            })
+    
+    all_opportunities.sort(key=lambda x: x["score"], reverse=True)
+    recommendations["top_opportunities"] = all_opportunities[:5]
+    
+    return recommendations
+
+    def _generate_selection_rationale(self, best_country: str, country_rankings: List[Dict[str, Any]], 
+                                    material: str) -> Dict[str, Any]:
+        """Generate detailed rationale for why the best country was selected over alternatives"""
+        if not country_rankings or not best_country:
+            return {
+                "summary": "Insufficient data for comparison",
+                "key_advantages": [],
+                "comparison_details": {}
+            }
+        
+        # Get the top country data
+        top_country_data = country_rankings[0] if country_rankings else None
+        if not top_country_data:
+            return {
+                "summary": "No valid country data available",
+                "key_advantages": [],
+                "comparison_details": {}
+            }
+        
+        # Analyze why this country is better
+        top_scores = top_country_data.get("expert_scores", {})
+        comparison_details = {}
+        key_advantages = []
+        
+        # Compare with other countries
+        for i, other_country_data in enumerate(country_rankings[1:], 1):
+            other_country = other_country_data.get("country", "Unknown")
+            other_scores = other_country_data.get("expert_scores", {})
+            other_overall = other_country_data.get("overall_score", 0.0)
+            
+            comparison_details[other_country] = {
+                "score_difference": round(top_country_data["overall_score"] - other_overall, 2),
+                "advantages": [],
+                "disadvantages": []
+            }
+            
+            # Compare each dimension
+            for field in ["profitability", "stability", "eco-friendly"]:
+                top_field_score = top_scores.get(field, 0)
+                other_field_score = other_scores.get(field, 0)
+                difference = round(top_field_score - other_field_score, 2)
+                
+                if difference > 0.5:
+                    comparison_details[other_country]["advantages"].append(
+                        f"Better {field.replace('-', ' ')} (+{difference} points)"
+                    )
+                elif difference < -0.5:
+                    comparison_details[other_country]["disadvantages"].append(
+                        f"Lower {field.replace('-', ' ')} ({difference} points)"
+                    )
+        
+        # Identify key advantages of the winning country
+        if top_scores.get("profitability", 0) >= 8.0:
+            key_advantages.append(f"Exceptional profitability score ({top_scores['profitability']}/10)")
+        if top_scores.get("stability", 0) >= 8.0:
+            key_advantages.append(f"High stability and reliability ({top_scores['stability']}/10)")
+        if top_scores.get("eco-friendly", 0) >= 8.0:
+            key_advantages.append(f"Strong sustainability credentials ({top_scores['eco-friendly']}/10)")
+        
+        # Check for balanced performance
+        scores_list = list(top_scores.values())
+        if scores_list and min(scores_list) >= 7.0:
+            key_advantages.append("Well-balanced performance across all dimensions")
+        
+        # Generate summary
+        score_margin = round(top_country_data["overall_score"] - 
+                            (country_rankings[1]["overall_score"] if len(country_rankings) > 1 else 0), 2)
+        
+        if score_margin > 1.0:
+            summary = f"{best_country} clearly outperforms alternatives with a {score_margin}-point lead"
+        elif score_margin > 0.5:
+            summary = f"{best_country} moderately outperforms alternatives with a {score_margin}-point advantage"
+        else:
+            summary = f"{best_country} narrowly leads with a {score_margin}-point margin"
+        
+        # Add context about the decision
+        if len(key_advantages) > 0:
+            summary += f". Key strengths include: {', '.join(key_advantages[:2])}"
+        
+        return {
+            "summary": summary,
+            "score_margin": score_margin,
+            "key_advantages": key_advantages,
+            "comparison_details": comparison_details,
+            "total_countries_analyzed": len(country_rankings),
+            "decision_confidence": "HIGH" if score_margin > 1.0 else "MODERATE" if score_margin > 0.5 else "LOW"
+        }
         
         detailed_analysis = self.results.get("detailed_analysis", {})
         
@@ -979,16 +1122,6 @@ def print_comprehensive_results(results: Dict[str, Any]):
     print(f"Execution Time: {results['execution_time']:.2f} seconds")
     print(f"Analysis Status: {results['status']}")
     
-     # NEW: Show priority and weights
-    final_recs = results.get("final_recommendations", {})
-    priority = final_recs.get("priority_focus", "balanced")
-    weights = final_recs.get("scoring_weights_used", {})
-    
-    print(f"\n🎯 ANALYSIS PRIORITY: {priority.upper()}")
-    print(f"Scoring Weights: Profitability={weights.get('profitability', 0):.0%}, "
-          f"Stability={weights.get('stability', 0):.0%}, "
-          f"Eco-friendly={weights.get('eco_friendly', 0):.0%}")
-    
     # Raw Materials Identified
     materials = results.get("identified_raw_materials", [])
     print(f"\n📦 RAW MATERIALS IDENTIFIED ({len(materials)}):")
@@ -1027,7 +1160,7 @@ def print_comprehensive_results(results: Dict[str, Any]):
                 for field, score in expert_scores.items():
                     print(f"     • {field.title()}: {score:.1f}/10")
     
-    # Final Recommendations
+    # Final Recommendations with Selection Rationale
     final_recs = results.get("final_recommendations", {})
     
     if "material_recommendations" in final_recs:
@@ -1038,15 +1171,46 @@ def print_comprehensive_results(results: Dict[str, Any]):
             best_country = rec.get("recommended_country")
             best_score = rec.get("recommended_score", 0.0)
             risk_level = rec.get("risk_level", "UNKNOWN")
+            selection_rationale = rec.get("selection_rationale", {})
             
             print(f"\n🔸 {material}")
             if best_country:
                 print(f"  ✅ Recommended: {best_country} (Score: {best_score}/10)")
                 print(f"  📊 Risk Level: {risk_level}")
                 
+                # NEW: Display selection rationale
+                if selection_rationale:
+                    print(f"\n  🎯 WHY {best_country.upper()} WAS SELECTED:")
+                    print(f"     {selection_rationale.get('summary', 'No summary available')}")
+                    
+                    # Show score comparison
+                    total_analyzed = selection_rationale.get('total_countries_analyzed', 0)
+                    confidence = selection_rationale.get('decision_confidence', 'UNKNOWN')
+                    print(f"     • Countries analyzed: {total_analyzed}")
+                    print(f"     • Decision confidence: {confidence}")
+                    
+                    # Show key advantages
+                    key_advantages = selection_rationale.get('key_advantages', [])
+                    if key_advantages:
+                        print(f"     • Key advantages:")
+                        for advantage in key_advantages[:3]:
+                            print(f"       - {advantage}")
+                    
+                    # Show comparisons with runner-ups
+                    comparisons = selection_rationale.get('comparison_details', {})
+                    if comparisons:
+                        print(f"     • Comparison with alternatives:")
+                        for other_country, comparison in list(comparisons.items())[:2]:  # Show top 2 alternatives
+                            score_diff = comparison.get('score_difference', 0)
+                            print(f"       vs {other_country}: +{score_diff} points overall")
+                            advantages = comparison.get('advantages', [])
+                            if advantages:
+                                print(f"         Advantages: {', '.join(advantages[:2])}")
+                
+                # Original insights
                 insights = rec.get("key_insights", [])
                 if insights:
-                    print("  🔍 Key Insights:")
+                    print("\n  🔍 Additional Insights:")
                     for insight in insights:
                         print(f"     • {insight}")
             else:
