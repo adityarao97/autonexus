@@ -1,4 +1,5 @@
 from bson import ObjectId
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.user import User, UserCreate
 from app.dependencies.db import get_db
@@ -37,6 +38,16 @@ def create_user(user: UserCreate, db=Depends(get_db)):
     # Dummy user creation
     return User(id=1, name=user.name, email=user.email)
 
+@router.get("/proposals")
+def proposals():
+    data = []
+    rec_cursor = data_collection.find({})
+    for rec in rec_cursor:
+        rec["_id"] = str(rec["_id"])
+        data.append(rec)
+
+    return data
+
 @router.post("/analyze")
 async def analyze(request: SourcingRequest):
     config = {"priority": request.priority}
@@ -46,6 +57,8 @@ async def analyze(request: SourcingRequest):
             destination_country=request.destination_country,
             config=config
         )
+        data["priority"] = request.priority
+        data["created"] = datetime.utcnow()
 
         rec = data_collection.insert_one(data)
         data["_id"] = str(rec.inserted_id)
@@ -67,5 +80,5 @@ def get_relationships(id: str):
 
     rec = data_collection.find_one({"_id": ObjectId(id)})
     neo4jNodes, neo4jRelationships = fetch_neo4j_nodes_relationships(rec)
-    
+
     return neo4jRelationships

@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 // This would typically connect to your actual Neo4j database
 // For now, I'll return the data you provided
-export async function GET() {
+export async function GET(
+  request: NextRequest, context: { params: Promise<{ id: string }> }
+) {
+
   try {
+    const { id } = await context.params
     // Fetch nodes from FastAPI backend
-    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/nodes/6857be741c79113571b0cbc2`, {
+    const response = await fetch(`http://127.0.0.1:8000/api/neo4j/nodes/${id}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
