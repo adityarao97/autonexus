@@ -3,7 +3,6 @@ from pydantic import BaseModel
 import asyncio
 import uvicorn
 
-from workflow_orchestrator import analyze_industry_sourcing
 
 app = FastAPI(title="Raw Material Sourcing API")
 

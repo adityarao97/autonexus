@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.models.user import User, UserCreate
 from app.dependencies.db import get_db
 from pydantic import BaseModel
