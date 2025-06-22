@@ -60,7 +60,7 @@ export default function GraphVisualizePage({ params }: PageProps) {
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Supply Chain Visualization - {id.toUpperCase()}
+              Supply Chain Visualization
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Interactive visualization of raw material sourcing and supplier relationships
@@ -130,8 +130,8 @@ export default function GraphVisualizePage({ params }: PageProps) {
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     {loading
-                      ? "Loading chocolate manufacturing supply chain data..."
-                      : "Chocolate manufacturing raw material sourcing and supplier scoring visualization"}
+                      ? "Loading supply chain data..."
+                      : "Raw material sourcing and supplier scoring visualization"}
                   </Typography>
                 </Box>
                 <Box sx={{ position: "relative" }}>

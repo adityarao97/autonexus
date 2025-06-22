@@ -173,7 +173,7 @@ export default function HomePage() {
             <FactoryIcon sx={{ fontSize: 48, color: "primary.main" }} />
             <Box>
               <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
-                Supply Chain Analyzer
+                Autonexus
               </Typography>
               <Typography variant="h6" color="text.secondary">
                 Business proposal processing and supply chain visualization
@@ -315,7 +315,7 @@ export default function HomePage() {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
-                              {formatDate(proposal.created_at)}
+                              {formatDate(proposal.created)}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
@@ -387,11 +387,9 @@ export default function HomePage() {
                   label="Priority"
                   onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value }))}
                 >
-                  <MenuItem value="cost">Cost Optimization</MenuItem>
+                  <MenuItem value="profitability">Profitability</MenuItem>
                   <MenuItem value="stability">Supply Stability</MenuItem>
-                  <MenuItem value="eco_friendly">Eco-Friendly</MenuItem>
-                  <MenuItem value="quality">Quality Focus</MenuItem>
-                  <MenuItem value="speed">Delivery Speed</MenuItem>
+                  <MenuItem value="eco-friendly">Eco-Friendly</MenuItem>
                 </Select>
               </FormControl>
             </Box>

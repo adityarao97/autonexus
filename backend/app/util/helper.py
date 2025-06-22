@@ -36,13 +36,13 @@ def fetch_neo4j_nodes_relationships(data):
         "id": use_case_id,
         "labels": ["UseCase"],
         "properties": {
-            "name": "Chocolate Manufacturing",
+            "name": data["industry_context"],
             "location": data.get("destination_country", "Unknown"),
             "raw_materials": raw_materials_str,
             "top_suppliers": top_suppliers_str
         }
     })
-    id_map["Chocolate Manufacturing"] = use_case_id
+    id_map[data["industry_context"]] = use_case_id
     id_counter += 1
 
     # ------------------------------
