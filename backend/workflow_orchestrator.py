@@ -45,7 +45,17 @@ class RawMaterialSourcingWorkflow:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the workflow orchestrator"""
-        self.config = config or self._get_default_config()
+        # Store config first to access priority
+        self.config = config or {}
+        
+        # Get priority from config
+        self.priority = self.config.get("priority", "balanced")
+        
+        # Now get default config which will use the priority
+        self.config = {**self._get_default_config(), **self.config}
+        
+        # Update scoring weights based on priority
+        self.scoring_weights = self.config["scoring_weights"]
         self.execution_id = str(uuid.uuid4())
         self.workflow_start_time = None
         self.workflow_end_time = None
@@ -87,15 +97,38 @@ class RawMaterialSourcingWorkflow:
     
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration for the workflow"""
+        priority = self.config.get("priority", "balanced") if hasattr(self, 'config') else "balanced"
+    
+    # Dynamic scoring weights based on priority
+        if priority == "profitability":
+            scoring_weights = {
+                "profitability": 0.6,
+                "stability": 0.2,
+                "eco_friendly": 0.2
+            }
+        elif priority == "stability":
+            scoring_weights = {
+                "profitability": 0.2,
+                "stability": 0.6,
+                "eco_friendly": 0.2
+            }
+        elif priority == "eco-friendly":
+            scoring_weights = {
+                "profitability": 0.2,
+                "stability": 0.2,
+                "eco_friendly": 0.6
+            }
+        else:  # balanced
+            scoring_weights = {
+                "profitability": 0.4,
+                "stability": 0.3,
+                "eco_friendly": 0.3
+            }
         return {
             "max_raw_materials": 3,
             "max_countries_per_material": 3,
             "expert_fields": ["profitability", "stability", "eco-friendly"],
-            "scoring_weights": {
-                "profitability": 0.4,
-                "stability": 0.3,
-                "eco_friendly": 0.3
-            },
+            "scoring_weights": scoring_weights,
             "analysis_depth": "COMPREHENSIVE",
             "concurrency": {
                 "max_agents": 5,
@@ -393,7 +426,8 @@ class RawMaterialSourcingWorkflow:
         logger.info(f"🌍 Analyzing countries for {raw_material}")
         
         # Create leader agent for this material
-        leader_agent = LeaderAgent(raw_material)
+        priority = self.config.get("priority", "balanced")
+        leader_agent = LeaderAgent(raw_material, priority)
         self.agents[f"leader_{raw_material}"] = leader_agent
         
         try:
@@ -615,14 +649,23 @@ class RawMaterialSourcingWorkflow:
     
     def _calculate_country_score(self, expert_results: Dict[str, Any]) -> float:
         """Calculate overall country score from expert results"""
-        weights = self.config["scoring_weights"]
+        # Use the priority-based weights
+        weights = self.scoring_weights  # Use instance weights instead of config
         total_score = 0.0
         total_weight = 0.0
         
+        # Map field names to weight keys
+        field_to_weight = {
+            "profitability": "profitability",
+            "stability": "stability",
+            "eco-friendly": "eco_friendly"
+        }
+        
         for field, result in expert_results.items():
-            if field in weights:
+            weight_key = field_to_weight.get(field, field)
+            if weight_key in weights:
                 score = result.get("expert_score", 5.0)
-                weight = weights[field]
+                weight = weights[weight_key]
                 total_score += score * weight
                 total_weight += weight
         
@@ -763,12 +806,14 @@ class RawMaterialSourcingWorkflow:
                                               destination_country: str) -> Dict[str, Any]:
         """Generate comprehensive recommendations from all analyses"""
         recommendations = {
-            "executive_summary": self._generate_executive_summary(),
-            "material_recommendations": {},
-            "top_opportunities": [],
-            "risk_assessment": {},
-            "implementation_roadmap": {}
-        }
+        "priority_focus": self.config.get("priority", "balanced"),  # NEW
+        "scoring_weights_used": self.scoring_weights,  # NEW
+        "executive_summary": self._generate_executive_summary(),
+        "material_recommendations": {},
+        "top_opportunities": [],
+        "risk_assessment": {},
+        "implementation_roadmap": {}
+    }
         
         detailed_analysis = self.results.get("detailed_analysis", {})
         
@@ -862,6 +907,7 @@ class RawMaterialSourcingWorkflow:
         top_country = rankings[0]
         top_score = top_country["overall_score"]
         
+        # Base insight
         if top_score >= 8.0:
             insights.append(f"Excellent sourcing opportunity with {top_country['country']}")
         elif top_score >= 7.0:
@@ -869,8 +915,15 @@ class RawMaterialSourcingWorkflow:
         else:
             insights.append(f"Limited sourcing options - best available: {top_country['country']}")
         
-        # Analyze score patterns
+        # Priority-specific insight
+        priority = self.config.get("priority", "balanced")
         expert_scores = top_country.get("expert_scores", {})
+        
+        if expert_scores and priority != "balanced":
+            priority_score = expert_scores.get(priority, 0)
+            insights.append(f"Priority focus ({priority}): {priority_score:.1f}/10")
+        
+        # Analyze score patterns
         if expert_scores:
             highest_aspect = max(expert_scores.items(), key=lambda x: x[1])
             lowest_aspect = min(expert_scores.items(), key=lambda x: x[1])
@@ -879,7 +932,7 @@ class RawMaterialSourcingWorkflow:
             if lowest_aspect[1] < 6.0:
                 insights.append(f"Requires attention in {lowest_aspect[0]} ({lowest_aspect[1]:.1f}/10)")
         
-        return insights[:3]  # Limit to top 3 insights
+        return insights[:4]  # Increased to 4 to include priority insight
     
     async def cleanup(self):
         """Cleanup resources"""
@@ -925,6 +978,16 @@ def print_comprehensive_results(results: Dict[str, Any]):
     print(f"Destination: {results['destination_country']}")
     print(f"Execution Time: {results['execution_time']:.2f} seconds")
     print(f"Analysis Status: {results['status']}")
+    
+     # NEW: Show priority and weights
+    final_recs = results.get("final_recommendations", {})
+    priority = final_recs.get("priority_focus", "balanced")
+    weights = final_recs.get("scoring_weights_used", {})
+    
+    print(f"\n🎯 ANALYSIS PRIORITY: {priority.upper()}")
+    print(f"Scoring Weights: Profitability={weights.get('profitability', 0):.0%}, "
+          f"Stability={weights.get('stability', 0):.0%}, "
+          f"Eco-friendly={weights.get('eco_friendly', 0):.0%}")
     
     # Raw Materials Identified
     materials = results.get("identified_raw_materials", [])
@@ -1023,14 +1086,34 @@ async def main():
     if not destination_country:
         destination_country = "USA"
     
+    # NEW: Add priority input
+    print("\nSelect your priority for sourcing decisions:")
+    print("1. Profitability (focus on cost-effectiveness)")
+    print("2. Stability (focus on reliable supply)")
+    print("3. Eco-friendly (focus on sustainability)")
+    print("4. Balanced (equal weight to all factors)")
+    
+    priority_choice = input("Enter your choice (1-4, default: 4): ").strip()
+    
+    priority_map = {
+        "1": "profitability",
+        "2": "stability", 
+        "3": "eco-friendly",
+        "4": "balanced"
+    }
+    
+    priority = priority_map.get(priority_choice, "balanced")
+    
     print(f"\n🚀 Starting comprehensive analysis...")
     print(f"Industry Context: {industry_context}")
     print(f"Destination: {destination_country}")
-    print(f"This analysis will:")
-    print(f"  1. Use LLM to identify top 3 raw materials for your industry")
-    print(f"  2. Find top 3 countries for each material")
-    print(f"  3. Analyze each country on profitability, stability, and eco-friendliness")
-    print(f"\nThis may take 5-10 minutes...")
+    print(f"Priority: {priority.title()}")
+    # ... rest of the function
+    
+    # Pass priority to the workflow
+    config = {
+        "priority": priority
+    }
     
     # Execute comprehensive workflow
     try:

@@ -15,13 +15,31 @@ class LeaderAgent(BaseAgent):
     3. Making final sourcing recommendations based on comprehensive analysis
     """
     
-    def __init__(self, raw_material: str):
+    def __init__(self, raw_material: str, priority: str = "balanced"):
         role = f"Expert of raw_material: {raw_material}"
-        goal = f"Identify countries (max 3) best known for producing {raw_material}, delegate tasks to country agents, and identify BEST country with optimal value on cost, stability score, eco-friendly score"
+        goal = f"Identify countries (max 3) best known for producing {raw_material}, delegate tasks to country agents, and identify BEST country with optimal value based on {priority} priority"
+    
         
         super().__init__(role, goal)
         self.raw_material = raw_material
         self.max_countries = 3
+        
+        super().__init__(role, goal)
+
+        self.raw_material = raw_material
+        self.max_countries = 3
+        self.priority = priority
+        
+        # Dynamic scoring weights based on priority
+        if priority == "profitability":
+            self.scoring_weights = {"cost_score": 0.6, "stability_score": 0.2, "eco_friendly_score": 0.2}
+        elif priority == "stability":
+            self.scoring_weights = {"cost_score": 0.2, "stability_score": 0.6, "eco_friendly_score": 0.2}
+        elif priority == "eco-friendly":
+            self.scoring_weights = {"cost_score": 0.2, "stability_score": 0.2, "eco_friendly_score": 0.6}
+        else:  # balanced
+            self.scoring_weights = {"cost_score": 0.4, "stability_score": 0.3, "eco_friendly_score": 0.3}
+        
         self.scoring_weights = {
             "cost_score": 0.4,
             "stability_score": 0.3,
