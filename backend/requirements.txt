@@ -4,7 +4,6 @@ pydantic
 # Core dependencies - no MCP required
 aiohttp>=3.8.0
 asyncio
-json
 typing-extensions>=4.0.0
 python-dateutil>=2.8.0
 

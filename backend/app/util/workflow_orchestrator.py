@@ -7,9 +7,9 @@ import uuid
 import traceback
 
 # Import agents
-from agents.leader_agent import LeaderAgent
-from agents.country_agent import CountryAgent
-from agents.expert_agent import ExpertAgent
+from ..agents.leader_agent import LeaderAgent
+from ..agents.country_agent import CountryAgent
+from ..agents.expert_agent import ExpertAgent
 
 # Import tools for direct database access
 from tools.mysql_tool import MySQLTool
