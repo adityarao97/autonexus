@@ -105,8 +105,8 @@ def fetch_neo4j_nodes_relationships(fp):
 
             neo4jRelationships.append({
                 "id": f"r{rel_counter}",
-                "startNodeId": id_map[cname],
-                "endNodeId": raw_id,
+                "startNodeId": raw_id,
+                "endNodeId": id_map[cname],
                 "type": "COUNTRY",
                 "properties": {}
             })
