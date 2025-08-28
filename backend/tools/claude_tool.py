@@ -19,7 +19,7 @@ class ClaudeTool:
         self.name = "claude_llm"
         self.description = "Interact with Claude LLM for advanced analysis, reasoning, and insights"
         self.api_key = api_key
-        self.model = model
+        self.model = "claude-3-opus-20240229"
         self.client = anthropic.Anthropic(api_key=api_key)
         self.request_count = 0
         self.total_tokens_used = 0

@@ -16,4 +16,4 @@ anthropic>=0.3.0  # Uncomment for real Claude API
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
 pymongo
-tensorflow-gpu
+# tensorflow-gpu
