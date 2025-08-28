@@ -90,8 +90,12 @@ class RawMaterialSourcingWorkflow:
         
         # Agent coordination settings
         self.max_concurrent_agents = self.config.get("concurrency", {}).get("max_agents", 5)
-        self.agent_timeout = self.config.get("timeouts", {}).get("agent_timeout", 300)
-        self.workflow_timeout = self.config.get("timeouts", {}).get("workflow_timeout", 1800)
+        self.agent_timeout = self.config.get("timeouts", {}).get("agent_timeout", 3000)
+        self.workflow_timeout = self.config.get("timeouts", {}).get("workflow_timeout", 3000)
+        
+        # Update timeout settings
+        self.agent_timeout = 3600  # 1 hour for agent operations
+        self.workflow_timeout = 3600  # 1 hour for entire workflow
         
         logger.info(f"🚀 Enhanced workflow orchestrator initialized with execution ID: {self.execution_id}")
     
@@ -150,9 +154,9 @@ class RawMaterialSourcingWorkflow:
                 "max_expert_agents": 3
             },
             "timeouts": {
-                "agent_timeout": 300,
-                "workflow_timeout": 2400,  # 40 minutes for comprehensive analysis
-                "database_timeout": 30
+                "agent_timeout": 3600,  # 1 hour
+                "workflow_timeout": 3600,  # 1 hour
+                "database_timeout": 3600
             },
             "database": {
                 "host": "localhost",
@@ -779,7 +783,7 @@ class RawMaterialSourcingWorkflow:
         # Map field names to weight keys
         field_to_weight = {
             "profitability": "profitability",
-            "stability": "stability",
+            "stability": "stability", 
             "eco-friendly": "eco_friendly"
         }
         

@@ -1,7 +1,7 @@
 """Configuration settings for the workflow"""
 
 # API Keys and Authentication
-CLAUDE_API_KEY = "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"  # Replace with actual key
+CLAUDE_API_KEY = ""  # Replace with actual key
 DUCKDUCKGO_API_KEY = None  # DuckDuckGo doesn't require API key for basic usage
 
 # Database Configuration
@@ -16,13 +16,13 @@ DATABASE_CONFIG = {
 # Agent Configuration
 AGENT_CONFIG = {
     "max_retries": 3,
-    "timeout_seconds": 30,
+    "timeout_seconds": 3000,
     "enable_memory": True
 }
 
 # Workflow Configuration
 WORKFLOW_CONFIG = {
-    "max_countries": 3,
+    "max_countries": 2, #kept as 2 for now to limit the time and resource spent on analysis
     "expert_fields": ["eco-friendly", "profitability", "stability"],
     "scoring_weights": {
         "cost_score": 0.4,

@@ -1,5 +1,5 @@
 external-services/mongodb-data/
 aditya_venv
 backend/workflow_orchestrator.log
-__pycache__
-tools/__pycache__
+__pycache__/
+**/__pycache__/

@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List
 from datetime import datetime
 import anthropic
+import aiohttp
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,7 +15,7 @@ class ClaudeTool:
     Claude LLM tool for advanced AI analysis and insights.
     """
     
-    def __init__(self, api_key: str = "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", model: str = "claude-3-haiku-20240307"):
+    def __init__(self, api_key: str = "add api key here"):
         self.name = "claude_llm"
         self.description = "Interact with Claude LLM for advanced analysis, reasoning, and insights"
         self.api_key = api_key
@@ -24,9 +25,17 @@ class ClaudeTool:
         self.total_tokens_used = 0
         self.cache = {}
         self.cache_ttl = 1800  # 30 minutes cache TTL
-    
+        self.use_ollama = True  # Add this flag to use locally running Ollama for LLM
+        self.ollama_url = "http://localhost:11434/api/generate"
+        
     async def execute(self, arguments: Dict[str, Any]) -> List[Dict[str, str]]:
-        """Execute Claude LLM request - MAIN METHOD"""
+        """Execute LLM request - MAIN METHOD"""
+        if self.use_ollama:
+            return await self._execute_ollama(arguments)
+        return await self._execute_claude(arguments)
+
+    async def _execute_claude(self, arguments: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Original Claude execution logic"""
         try:
             # Validate arguments
             prompt = arguments.get("prompt", "").strip()
@@ -95,6 +104,55 @@ class ClaudeTool:
             logger.error(error_msg)
             
             return [{"type": "text", "text": f"{error_msg}\n\nThis might be due to API limits, network issues, or invalid parameters. Please check your configuration and try again."}]
+    
+    async def _execute_ollama(self, arguments: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Execute request using Ollama local API"""
+        try:
+            prompt = arguments.get("prompt", "").strip()
+            if not prompt:
+                return [{"type": "text", "text": "Error: Prompt is required"}]
+            
+            model = arguments.get("model", "gemma3:1b")
+            temperature = arguments.get("temperature", 0.7)
+            
+            # Check cache
+            cache_key = self._get_cache_key(arguments)
+            if cache_key in self.cache:
+                cached_content, timestamp = self.cache[cache_key]
+                if (datetime.now().timestamp() - timestamp) < self.cache_ttl:
+                    return [{"type": "text", "text": cached_content}]
+
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "temperature": 0.0
+            }
+
+            async with aiohttp.ClientSession() as session:
+                print("#########payload is ", payload)
+                async with session.post(self.ollama_url, json=payload) as response:
+                    if response.status != 200:
+                        raise Exception(f"Ollama API error: {response.status}")
+                    result = await response.json()
+                    print("#########result is ", result)
+                    content = result.get("response", "")
+
+            # Update tracking
+            self.request_count += 1
+            
+            # Add metadata
+            formatted_response = f"{content}\n\n---\nModel: {model} (Ollama)\nTotal API calls: {self.request_count}"
+            
+            # Cache response
+            self.cache[cache_key] = (formatted_response, datetime.now().timestamp())
+            
+            return [{"type": "text", "text": formatted_response}]
+            
+        except Exception as e:
+            error_msg = f"Ollama LLM execution failed: {str(e)}"
+            logger.error(error_msg)
+            return [{"type": "text", "text": error_msg}]
     
     def _get_cache_key(self, arguments: Dict[str, Any]) -> str:
         """Generate cache key for the request"""
