@@ -1,3 +1,11 @@
+# AutoNexus – Multi-Agent Supply Chain Optimization Platform
+
+**AutoNexus** is a multi-agent supply chain optimization platform that uses **Claude MCP agents**, **Python**, **Neo4j**, **MySQL**, and a modern **React** dashboard to intelligently generate, evaluate, and visualize end-to-end logistics plans.
+
+This system supports optimization based on **cost**, **eco-impact**, and **stability**, enabling organizations to explore and compare multiple supply chain strategies with transparent, explainable reasoning.
+
+---
+
 # Clean Setup Instructions
 
 ## Pre-requirements
